@@ -136,7 +136,12 @@ export default function EquipmentGrid({ selectedCategory }: EquipmentGridProps) 
     const { data } = await query
     
     if (data) {
-      setEquipments(data)
+      // Transformar category de array para objeto único
+      const transformedData = data.map((item: any) => ({
+        ...item,
+        category: Array.isArray(item.category) ? item.category[0] : item.category
+      }))
+      setEquipments(transformedData as Equipment[])
     }
     setLoading(false)
   }
