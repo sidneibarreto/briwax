@@ -291,7 +291,7 @@ export default function EquipmentGrid({ selectedCategory }: EquipmentGridProps) 
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-3xl max-w-6xl w-full max-h-[95vh] overflow-hidden shadow-2xl flex flex-col"
           >
             <div className="relative">
               {/* Botão Fechar */}
@@ -317,21 +317,23 @@ export default function EquipmentGrid({ selectedCategory }: EquipmentGridProps) 
                 if (images.length === 0) return null
                 
                 return (
-                  <div className="relative w-full h-96 bg-gray-100 overflow-hidden">
+                  <div className="relative w-full bg-white rounded-t-3xl overflow-hidden flex-1 flex">
                     <div 
-                      className="flex transition-transform duration-500 ease-out h-full"
+                      className="flex transition-transform duration-500 ease-out w-full"
                       style={{ transform: `translateX(-${modalImageIndex * 100}%)` }}
                     >
                       {images.map((imageUrl, index) => (
                         <div 
                           key={index}
-                          className="min-w-full h-full relative"
+                          className="min-w-full flex items-center justify-center bg-white"
                         >
                           <Image
                             src={imageUrl}
                             alt={`${selectedEquipment.name} - Imagem ${index + 1}`}
-                            fill
-                            className="object-cover"
+                            width={1920}
+                            height={1080}
+                            className="max-h-[70vh] w-auto object-contain"
+                            sizes="(max-width: 768px) 100vw, 1200px"
                           />
                         </div>
                       ))}
@@ -343,7 +345,7 @@ export default function EquipmentGrid({ selectedCategory }: EquipmentGridProps) 
                         <button
                           onClick={handlePreviousImage}
                           disabled={isAnimating}
-                          className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/30 disabled:opacity-20 p-3 rounded-full shadow-lg transition-all z-10"
+                          className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 disabled:opacity-20 p-3 rounded-full shadow-lg transition-all z-10"
                         >
                           <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
@@ -352,7 +354,7 @@ export default function EquipmentGrid({ selectedCategory }: EquipmentGridProps) 
                         <button
                           onClick={handleNextImage}
                           disabled={isAnimating}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/30 disabled:opacity-20 p-3 rounded-full shadow-lg transition-all z-10"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 disabled:opacity-20 p-3 rounded-full shadow-lg transition-all z-10"
                         >
                           <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
@@ -375,7 +377,7 @@ export default function EquipmentGrid({ selectedCategory }: EquipmentGridProps) 
                         </div>
 
                         {/* Contador */}
-                        <div className="absolute top-4 right-4 bg-black/50 text-white text-sm px-3 py-1 rounded-full z-10">
+                        <div className="absolute top-4 right-4 bg-black/70 text-white text-sm px-3 py-1 rounded-full z-10">
                           {modalImageIndex + 1} / {images.length}
                         </div>
                       </>
@@ -385,7 +387,7 @@ export default function EquipmentGrid({ selectedCategory }: EquipmentGridProps) 
               })()}
 
               {/* Conteúdo */}
-              <div className="p-8 space-y-4">
+              <div className="p-8 space-y-4 overflow-y-auto">
                 <div>
                   <p className="text-sm font-medium text-primary-600 uppercase tracking-wide mb-2">
                     {selectedEquipment.category?.name}

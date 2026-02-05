@@ -41,10 +41,10 @@ export default function Header({ selectedCategory, onCategoryChange }: HeaderPro
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           {/* Logo */}
-          <div className="flex items-center">
+          <div className="flex items-center justify-center sm:justify-start">
             {logoUrl ? (
               <button 
                 onClick={() => window.location.reload()}
@@ -61,10 +61,10 @@ export default function Header({ selectedCategory, onCategoryChange }: HeaderPro
           </div>
 
           {/* Category Filters - Estilo Apple */}
-          <nav className="inline-flex items-center gap-1 bg-gray-100/80 backdrop-blur-sm p-1.5 rounded-full shadow-sm">
+          <nav className="w-full flex flex-wrap items-center justify-start sm:justify-end gap-2 bg-gray-100/80 backdrop-blur-sm p-2 rounded-2xl shadow-sm overflow-x-auto sm:overflow-visible">
             <button
               onClick={() => onCategoryChange(null)}
-              className={`px-6 py-2.5 text-sm font-medium rounded-full transition-all duration-300 ${
+              className={`px-4 sm:px-6 py-2 sm:py-2.5 text-sm font-medium rounded-full transition-all duration-300 ${
                 selectedCategory === null
                   ? 'bg-gray-900 text-white shadow-md'
                   : 'text-gray-700 hover:text-gray-900'
@@ -76,7 +76,7 @@ export default function Header({ selectedCategory, onCategoryChange }: HeaderPro
               <button
                 key={category.id}
                 onClick={() => onCategoryChange(category.id)}
-                className={`px-6 py-2.5 text-sm font-medium rounded-full transition-all duration-300 ${
+                className={`px-4 sm:px-6 py-2 sm:py-2.5 text-sm font-medium rounded-full transition-all duration-300 ${
                   selectedCategory === category.id
                     ? 'bg-gray-900 text-white shadow-md'
                     : 'text-gray-700 hover:text-gray-900'
