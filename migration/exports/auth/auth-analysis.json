@@ -1,0 +1,34 @@
+{
+  "linked": [],
+  "orphan_firestore_docs": [
+    {
+      "source": "firestore_doc",
+      "doc_id": "396b93dc-e208-42b7-8066-091a811690e5",
+      "email": "(sem email)",
+      "status": "not_found_in_firebase_auth",
+      "action": "create_firebase_user_or_delete"
+    },
+    {
+      "source": "firestore_doc",
+      "doc_id": "74028ca6-5d1c-4ea2-91ba-60faf08a9c60",
+      "email": "(sem email)",
+      "status": "not_found_in_firebase_auth",
+      "action": "create_firebase_user_or_delete"
+    },
+    {
+      "source": "firestore_doc",
+      "doc_id": "bc88041f-5acb-40b4-b345-37c62a8e5138",
+      "email": "(sem email)",
+      "status": "not_found_in_firebase_auth",
+      "action": "create_firebase_user_or_delete"
+    },
+    {
+      "source": "firestore_doc",
+      "doc_id": "ec974492-9314-42ee-969a-b7611eb14303",
+      "email": "(sem email)",
+      "status": "not_found_in_firebase_auth",
+      "action": "create_firebase_user_or_delete"
+    }
+  ],
+  "firebase_users_without_admin_doc": []
+}

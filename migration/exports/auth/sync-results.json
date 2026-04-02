@@ -1,0 +1,42 @@
+[
+  {
+    "email": "bruno.barreto@nextredpro.com",
+    "status": "already_exists",
+    "firebase_uid": "UUzRkXCwlNStZgNrk9yb9Qg0GW52",
+    "action": "none",
+    "reset_link": "https://worldstagestorebrasil.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=zmsaOO8cJk2GpEuKb07NJNtiua2BoOTFTos45aKtGIAAAAGdNnx_fw&apiKey=AIzaSyA2l6XhHJMDcw7o27YxcZIM9qkWhcw1-9I&lang=en",
+    "old_supabase_uuid": "UUzRkXCwlNStZgNrk9yb9Qg0GW52"
+  },
+  {
+    "email": "marcio.nicolini@nextredpro.com",
+    "status": "already_exists",
+    "firebase_uid": "CsFtOYN6UpNxWY71yLd3I9t9hIw1",
+    "action": "none",
+    "reset_link": "https://worldstagestorebrasil.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=6CWBc435xLpb-87H6eBY2YwBKUZAPYOBexmMoebo6yYAAAGdNnyDHg&apiKey=AIzaSyA2l6XhHJMDcw7o27YxcZIM9qkWhcw1-9I&lang=en",
+    "old_supabase_uuid": "CsFtOYN6UpNxWY71yLd3I9t9hIw1"
+  },
+  {
+    "email": "sidnei.barreto@nextredpro.com",
+    "status": "already_exists",
+    "firebase_uid": "iJxN7UqE7dRKrDpiIdHMGMdJ6iz2",
+    "action": "none",
+    "reset_link": "https://worldstagestorebrasil.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=1fkdmfx2Fs1wQn8S9B16wYxVFtr97fRuwUNjDfszHvIAAAGdNnyG6g&apiKey=AIzaSyA2l6XhHJMDcw7o27YxcZIM9qkWhcw1-9I&lang=en",
+    "old_supabase_uuid": "iJxN7UqE7dRKrDpiIdHMGMdJ6iz2"
+  },
+  {
+    "email": "sidneibarreto24071982@gmail.com",
+    "status": "already_exists",
+    "firebase_uid": "I0Kw1l2smShCQ1UQkQXjD9YS8f73",
+    "action": "none",
+    "reset_link": "https://worldstagestorebrasil.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=BSdEBq0pXD51wzq9ndpS93SBAJiDRkBCNoywZ9fH_hkAAAGdNnyK-A&apiKey=AIzaSyA2l6XhHJMDcw7o27YxcZIM9qkWhcw1-9I&lang=en",
+    "old_supabase_uuid": "I0Kw1l2smShCQ1UQkQXjD9YS8f73"
+  },
+  {
+    "email": "tamiris@nextredpro.com",
+    "status": "already_exists",
+    "firebase_uid": "SAP4p7iAq3euGTflWBicmKTeSX73",
+    "action": "none",
+    "reset_link": "https://worldstagestorebrasil.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=n0NA_2hYDaJt75y9AvCNfE35Qha8U3rofWZzPDINTe8AAAGdNnyOeg&apiKey=AIzaSyA2l6XhHJMDcw7o27YxcZIM9qkWhcw1-9I&lang=en",
+    "old_supabase_uuid": "SAP4p7iAq3euGTflWBicmKTeSX73"
+  }
+]

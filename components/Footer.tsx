@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
 interface FooterSettings {
   phone: string
@@ -25,20 +26,19 @@ export default function Footer() {
   }, [])
 
   async function loadSettings() {
-    const { data } = await supabase
-      .from('site_settings')
-      .select('*')
-      .single()
-    
-    if (data) {
-      setSettings({
-        phone: data.phone || '',
-        email: data.email || '',
-        address: data.address || '',
-        instagram_url: data.instagram_url || '',
-        whatsapp_url: data.whatsapp_url || ''
-      })
-    }
+    try {
+      const snap = await getDoc(doc(db, 'configuracoes_site', 'principal'))
+      if (snap.exists()) {
+        const data = snap.data()
+        setSettings({
+          phone: data.phone || '',
+          email: data.email || '',
+          address: data.address || '',
+          instagram_url: data.instagram_url || '',
+          whatsapp_url: data.whatsapp_url || ''
+        })
+      }
+    } catch {}
   }
 
   const handleInstagramClick = () => {

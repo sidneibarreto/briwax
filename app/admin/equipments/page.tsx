@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { supabase } from '@/lib/supabase'
+import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { getUser } from '@/lib/auth'
 import AdminHeader from '@/components/AdminHeader'
 import type { Equipment, Category } from '@/lib/types'
@@ -43,30 +44,22 @@ export default function EquipmentsPage() {
 
   async function loadData() {
     setLoading(true)
-    
-    // Load categories
-    const { data: categoriesData } = await supabase
-      .from('categories')
-      .select('*')
-      .order('name')
-    
-    if (categoriesData) {
-      setCategories(categoriesData)
-    }
+    try {
+      // Categorias
+      const catSnap = await getDocs(query(collection(db, 'categorias'), orderBy('name')))
+      setCategories(catSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as Category[])
 
-    // Load equipments with category
-    const { data: equipmentsData } = await supabase
-      .from('equipments')
-      .select(`
-        *,
-        category:categories(id, name, slug)
-      `)
-      .order('created_at', { ascending: false })
-    
-    if (equipmentsData) {
-      setEquipments(equipmentsData)
-    }
-    
+      // Equipamentos com categoria
+      const catMap: Record<string, any> = {}
+      catSnap.docs.forEach((d) => { catMap[d.id] = { id: d.id, ...d.data() } })
+
+      const eqSnap = await getDocs(query(collection(db, 'equipamentos'), orderBy('created_at', 'desc')))
+      const eqData = eqSnap.docs.map((d) => {
+        const data = d.data() as any
+        return { id: d.id, ...data, category: catMap[data.category_id] || null }
+      })
+      setEquipments(eqData as Equipment[])
+    } catch {}
     setLoading(false)
   }
 
@@ -74,7 +67,6 @@ export default function EquipmentsPage() {
     const files = e.target.files
     if (!files || files.length === 0) return
 
-    // Validação de todos os arquivos
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
       const validTypes = ['image/jpeg', 'image/png', 'image/webp']
@@ -89,40 +81,22 @@ export default function EquipmentsPage() {
     }
 
     setUploading(true)
-
     const uploadedUrls: string[] = []
 
-    // Upload de todos os arquivos
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Date.now()}_${i}.${fileExt}`
-      const filePath = `${fileName}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('equipments')
-        .upload(filePath, file)
-
-      if (uploadError) {
-        alert(`Erro ao fazer upload de ${file.name}: ${uploadError.message}`)
-        setUploading(false)
-        return
-      }
-
-      const { data } = supabase.storage
-        .from('equipments')
-        .getPublicUrl(filePath)
-
-      uploadedUrls.push(data.publicUrl)
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('folder', 'equipamentos')
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: fd })
+        const data = await res.json()
+        if (data.path) uploadedUrls.push(data.path)
+      } catch {}
     }
 
-    // Atualizar formData com todas as imagens
     const allImages = [...formData.images, ...uploadedUrls]
-    setFormData({ 
-      ...formData, 
-      image_url: allImages[0] || '', // Primeira imagem é a principal
-      images: allImages 
-    })
+    setFormData({ ...formData, image_url: allImages[0] || '', images: allImages })
     setUploading(false)
     alert(`${uploadedUrls.length} imagem(ns) adicionada(s) com sucesso!`)
   }
@@ -138,45 +112,26 @@ export default function EquipmentsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    
-    if (editingEquipment) {
-      // Update
-      const { error } = await supabase
-        .from('equipments')
-        .update(formData)
-        .eq('id', editingEquipment.id)
-      
-      if (!error) {
-        loadData()
-        resetForm()
+    try {
+      if (editingEquipment) {
+        await updateDoc(doc(db, 'equipamentos', editingEquipment.id), formData)
       } else {
-        alert('Erro ao atualizar: ' + error.message)
+        await addDoc(collection(db, 'equipamentos'), { ...formData, created_at: serverTimestamp() })
       }
-    } else {
-      // Create
-      const { error } = await supabase
-        .from('equipments')
-        .insert([formData])
-      
-      if (!error) {
-        loadData()
-        resetForm()
-      } else {
-        alert('Erro ao criar: ' + error.message)
-      }
+      loadData()
+      resetForm()
+    } catch (err: any) {
+      alert('Erro: ' + err.message)
     }
   }
 
   async function handleDelete(id: string) {
     if (!confirm('Tem certeza que deseja excluir este equipamento?')) return
-    
-    const { error } = await supabase
-      .from('equipments')
-      .delete()
-      .eq('id', id)
-    
-    if (!error) {
+    try {
+      await deleteDoc(doc(db, 'equipamentos', id))
       loadData()
+    } catch (err: any) {
+      alert('Erro ao excluir: ' + err.message)
     }
   }
 

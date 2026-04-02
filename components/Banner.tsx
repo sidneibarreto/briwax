@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react'
 import Image from 'next/image'
-import { supabase } from '@/lib/supabase'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
 export default function Banner() {
   const [bannerImages, setBannerImages] = useState<string[]>([])
@@ -17,30 +18,22 @@ export default function Banner() {
 
   useEffect(() => {
     if (bannerImages.length <= 1 || isPaused) return
-
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % bannerImages.length)
-    }, 3000) // Muda a cada 3 segundos
-
+    }, 3000)
     return () => clearInterval(interval)
   }, [bannerImages.length, isPaused])
 
   async function loadBannerImages() {
-    const { data } = await supabase.storage
-      .from('equipments')
-      .list('banner', {
-        limit: 10,
-        offset: 0,
-      })
-    
-    if (data && data.length > 0) {
-      const urls = data.map(file => {
-        const { data: urlData } = supabase.storage
-          .from('equipments')
-          .getPublicUrl(`banner/${file.name}`)
-        return urlData.publicUrl
-      })
-      setBannerImages(urls)
+    try {
+      const snap = await getDoc(doc(db, 'configuracoes_site', 'principal'))
+      if (snap.exists()) {
+        const data = snap.data()
+        const banners: string[] = data.banners || []
+        setBannerImages(banners)
+      }
+    } catch (e) {
+      console.error('[Banner] Erro ao carregar banners:', e)
     }
   }
 

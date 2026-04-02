@@ -4,7 +4,8 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { supabase } from '@/lib/supabase'
+import { doc, getDoc, setDoc, updateDoc, arrayRemove, arrayUnion } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { getUser } from '@/lib/auth'
 import AdminHeader from '@/components/AdminHeader'
 
@@ -53,75 +54,58 @@ export default function SettingsPage() {
   }
 
   async function loadFooterSettings() {
-    const { data, error } = await supabase
-      .from('site_settings')
-      .select('*')
-      .single()
-    
-    if (data) {
-      setFooterSettings({
-        id: data.id,
-        phone: data.phone || '',
-        email: data.email || '',
-        address: data.address || '',
-        instagram_url: data.instagram_url || '',
-        whatsapp_url: data.whatsapp_url || ''
-      })
-    }
+    try {
+      const snap = await getDoc(doc(db, 'configuracoes_site', 'principal'))
+      if (snap.exists()) {
+        const data = snap.data()
+        setFooterSettings({
+          id: 'principal',
+          phone: data.phone || '',
+          email: data.email || '',
+          address: data.address || '',
+          instagram_url: data.instagram_url || '',
+          whatsapp_url: data.whatsapp_url || ''
+        })
+      }
+    } catch {}
   }
 
   async function handleSaveFooterSettings() {
     setSavingFooter(true)
     setFooterMessage('')
-
-    const { error } = await supabase
-      .from('site_settings')
-      .update({
+    try {
+      await setDoc(doc(db, 'configuracoes_site', 'principal'), {
         phone: footerSettings.phone,
         email: footerSettings.email,
         address: footerSettings.address,
         instagram_url: footerSettings.instagram_url,
         whatsapp_url: footerSettings.whatsapp_url,
         updated_at: new Date().toISOString()
-      })
-      .eq('id', footerSettings.id)
-
-    if (error) {
-      setFooterMessage('Erro ao salvar: ' + error.message)
-    } else {
+      }, { merge: true })
       setFooterMessage('Configurações salvas com sucesso! ✅')
+    } catch (err: any) {
+      setFooterMessage('Erro ao salvar: ' + err.message)
     }
-
     setSavingFooter(false)
   }
 
   async function loadLogo() {
-    const { data } = supabase.storage
-      .from('equipments')
-      .getPublicUrl('logo.png')
-    
-    if (data) {
-      setLogoUrl(data.publicUrl + '?t=' + Date.now())
+    try {
+      const snap = await getDoc(doc(db, 'configuracoes_site', 'principal'))
+      const url = snap.exists() ? (snap.data().logo_url || '/logo.png') : '/logo.png'
+      setLogoUrl(url + '?t=' + Date.now())
+    } catch {
+      setLogoUrl('/logo.png?t=' + Date.now())
     }
   }
 
   async function loadBannerImages() {
-    const { data, error } = await supabase.storage
-      .from('equipments')
-      .list('banner', {
-        limit: 10,
-        offset: 0,
-      })
-    
-    if (data) {
-      const urls = data.map(file => {
-        const { data: urlData } = supabase.storage
-          .from('equipments')
-          .getPublicUrl(`banner/${file.name}`)
-        return urlData.publicUrl
-      })
-      setBannerImages(urls)
-    }
+    try {
+      const snap = await getDoc(doc(db, 'configuracoes_site', 'principal'))
+      if (snap.exists()) {
+        setBannerImages(snap.data().banners || [])
+      }
+    } catch {}
   }
 
   async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -129,8 +113,6 @@ export default function SettingsPage() {
     if (!files || files.length === 0) return
 
     const validTypes = ['image/png', 'image/jpeg', 'image/webp']
-    
-    // Validar todos os arquivos
     for (let i = 0; i < files.length; i++) {
       if (!validTypes.includes(files[i].type)) {
         setBannerMessage(`Formato inválido no arquivo ${files[i].name}. Use PNG, JPG ou WebP`)
@@ -145,42 +127,45 @@ export default function SettingsPage() {
     setUploadingBanner(true)
     setBannerMessage(`Fazendo upload de ${files.length} imagem(ns)...`)
 
-    // Upload de todos os arquivos
     let uploadedCount = 0
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Date.now()}_${i}.${fileExt}`
-      const filePath = `banner/${fileName}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('equipments')
-        .upload(filePath, file)
-
-      if (!uploadError) {
-        uploadedCount++
-      }
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('folder', 'banner')
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: fd })
+        const data = await res.json()
+        if (data.path) {
+          await updateDoc(doc(db, 'configuracoes_site', 'principal'), {
+            banners: arrayUnion(data.path)
+          })
+          uploadedCount++
+        }
+      } catch {}
     }
 
     setBannerMessage(`${uploadedCount} imagem(ns) adicionada(s) com sucesso! ✅`)
     loadBannerImages()
     setUploadingBanner(false)
-    
-    // Limpar o input
     e.target.value = ''
   }
 
-  async function handleDeleteBannerImage(imageUrl: string) {
+  async function handleDeleteBannerImage(imagePath: string) {
     if (!confirm('Tem certeza que deseja excluir esta imagem?')) return
-
-    const fileName = imageUrl.split('/').pop()
-    const { error } = await supabase.storage
-      .from('equipments')
-      .remove([`banner/${fileName}`])
-
-    if (!error) {
+    try {
+      await fetch('/api/upload', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: imagePath }),
+      })
+      await updateDoc(doc(db, 'configuracoes_site', 'principal'), {
+        banners: arrayRemove(imagePath)
+      })
       setBannerMessage('Imagem excluída! ✅')
       loadBannerImages()
+    } catch (err: any) {
+      setBannerMessage('Erro ao excluir imagem: ' + err.message)
     }
   }
 
@@ -305,42 +290,37 @@ export default function SettingsPage() {
         finalSize
       )
 
-      // Converter para blob
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          setMessage('Erro ao processar imagem')
+        // Converter para blob e enviar via API
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            setMessage('Erro ao processar imagem')
+            setUploading(false)
+            return
+          }
+
+          const fd = new FormData()
+          fd.append('file', blob, 'logo.png')
+          fd.append('folder', '')
+          fd.append('name', 'logo.png')
+
+          const res = await fetch('/api/upload', { method: 'POST', body: fd })
+          const data = await res.json()
+
+          if (data.path) {
+            await updateDoc(doc(db, 'configuracoes_site', 'principal'), {
+              logo_url: data.path
+            })
+          }
+
+          setMessage('Logo atualizada com sucesso! ✅')
+          setSelectedImage(null)
+          loadLogo()
           setUploading(false)
-          return
-        }
 
-        // Deletar logo antiga
-        await supabase.storage
-          .from('equipments')
-          .remove(['logo.png'])
-
-        // Upload da nova logo
-        const { error: uploadError } = await supabase.storage
-          .from('equipments')
-          .upload('logo.png', blob, {
-            cacheControl: '0',
-            upsert: true
-          })
-
-        if (uploadError) {
-          setMessage('Erro ao fazer upload: ' + uploadError.message)
-          setUploading(false)
-          return
-        }
-
-        setMessage('Logo atualizada com sucesso! ✅')
-        setSelectedImage(null)
-        loadLogo()
-        setUploading(false)
-        
-        setTimeout(() => {
-          window.location.reload()
-        }, 1000)
-      }, 'image/png')
+          setTimeout(() => {
+            window.location.reload()
+          }, 1000)
+        }, 'image/png')
     }
   }
 

@@ -6,6 +6,7 @@ import Banner from '@/components/Banner'
 import EquipmentGrid from '@/components/EquipmentGrid'
 import WhatsAppButton from '@/components/WhatsAppButton'
 import Footer from '@/components/Footer'
+import CartBadge from '@/components/cotacao/CartBadge'
 
 export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
@@ -22,6 +23,7 @@ export default function HomePage() {
       </main>
       <Footer />
       <WhatsAppButton />
+      <CartBadge />
     </div>
   )
 }

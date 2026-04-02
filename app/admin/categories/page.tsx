@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { getUser } from '@/lib/auth'
 import AdminHeader from '@/components/AdminHeader'
 import type { Category } from '@/lib/types'
@@ -33,54 +34,36 @@ export default function CategoriesPage() {
 
   async function loadCategories() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .order('created_at', { ascending: false })
-    
-    if (!error && data) {
-      setCategories(data)
-    }
+    try {
+      const q = query(collection(db, 'categorias'), orderBy('created_at', 'desc'))
+      const snap = await getDocs(q)
+      setCategories(snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Category[])
+    } catch {}
     setLoading(false)
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    
-    if (editingCategory) {
-      // Update
-      const { error } = await supabase
-        .from('categories')
-        .update(formData)
-        .eq('id', editingCategory.id)
-      
-      if (!error) {
-        loadCategories()
-        resetForm()
+    try {
+      if (editingCategory) {
+        await updateDoc(doc(db, 'categorias', editingCategory.id), formData)
+      } else {
+        await addDoc(collection(db, 'categorias'), { ...formData, created_at: serverTimestamp() })
       }
-    } else {
-      // Create
-      const { error } = await supabase
-        .from('categories')
-        .insert([formData])
-      
-      if (!error) {
-        loadCategories()
-        resetForm()
-      }
+      loadCategories()
+      resetForm()
+    } catch (err: any) {
+      alert('Erro: ' + err.message)
     }
   }
 
   async function handleDelete(id: string) {
     if (!confirm('Tem certeza que deseja excluir esta categoria?')) return
-    
-    const { error } = await supabase
-      .from('categories')
-      .delete()
-      .eq('id', id)
-    
-    if (!error) {
+    try {
+      await deleteDoc(doc(db, 'categorias', id))
       loadCategories()
+    } catch (err: any) {
+      alert('Erro ao excluir: ' + err.message)
     }
   }
 

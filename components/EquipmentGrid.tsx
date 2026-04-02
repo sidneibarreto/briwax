@@ -2,7 +2,11 @@
 
 import { useEffect, useState, useRef } from 'react'
 import Image from 'next/image'
-import { supabase } from '@/lib/supabase'
+import { collection, getDocs, query, where } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { getUser } from '@/lib/auth'
+import { useCart } from '@/components/cotacao/CartProvider'
+import AuthModalCotacao from '@/components/cotacao/AuthModalCotacao'
 import type { Equipment } from '@/lib/types'
 
 interface EquipmentGridProps {
@@ -18,6 +22,11 @@ export default function EquipmentGrid({ selectedCategory }: EquipmentGridProps) 
   const [isPaused, setIsPaused] = useState(false)
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [cardImageIndexes, setCardImageIndexes] = useState<Record<string, number>>({})
+  const [adicionadoId, setAdicionadoId] = useState<string | null>(null)
+  const [modalAuthAberto, setModalAuthAberto] = useState(false)
+  const [equipmentParaAdicionar, setEquipmentParaAdicionar] = useState<Equipment | null>(null)
+
+  const { adicionarItem } = useCart()
 
   useEffect(() => {
     loadEquipments()
@@ -74,6 +83,30 @@ export default function EquipmentGrid({ selectedCategory }: EquipmentGridProps) 
     return images
   }
 
+  // Verifica autenticação e adiciona ao carrinho
+  async function handleAdicionarCarrinho(e: React.MouseEvent, equipment: Equipment) {
+    e.stopPropagation()
+    const user = await getUser()
+    if (!user) {
+      setEquipmentParaAdicionar(equipment)
+      setModalAuthAberto(true)
+      return
+    }
+    adicionarItem(equipment)
+    setAdicionadoId(equipment.id)
+    setTimeout(() => setAdicionadoId(null), 2000)
+  }
+
+  function handleAutenticado() {
+    setModalAuthAberto(false)
+    if (equipmentParaAdicionar) {
+      adicionarItem(equipmentParaAdicionar)
+      setAdicionadoId(equipmentParaAdicionar.id)
+      setTimeout(() => setAdicionadoId(null), 2000)
+      setEquipmentParaAdicionar(null)
+    }
+  }
+
   const resetInactivityTimer = () => {
     if (inactivityTimerRef.current) {
       clearTimeout(inactivityTimerRef.current)
@@ -112,36 +145,37 @@ export default function EquipmentGrid({ selectedCategory }: EquipmentGridProps) 
 
   async function loadEquipments() {
     setLoading(true)
-    
-    let query = supabase
-      .from('equipments')
-      .select(`
-        id,
-        name,
-        description,
-        image_url,
-        images,
-        category_id,
-        status,
-        created_at,
-        category:categories(id, name, slug)
-      `)
-      .eq('status', 'published')
-      .order('created_at', { ascending: false })
+    try {
+      // Buscar mapa de categorias
+      const catSnap = await getDocs(collection(db, 'categorias'))
+      const catMap: Record<string, { id: string; name: string; slug: string }> = {}
+      catSnap.docs.forEach((d) => {
+        catMap[d.id] = { id: d.id, ...(d.data() as any) }
+      })
 
-    if (selectedCategory) {
-      query = query.eq('category_id', selectedCategory)
-    }
-
-    const { data } = await query
-    
-    if (data) {
-      // Transformar category de array para objeto único
-      const transformedData = data.map((item: any) => ({
-        ...item,
-        category: Array.isArray(item.category) ? item.category[0] : item.category
-      }))
-      setEquipments(transformedData as Equipment[])
+      // Buscar equipamentos
+      const constraints: any[] = [where('status', '==', 'published')]
+      if (selectedCategory) {
+        constraints.push(where('category_id', '==', selectedCategory))
+      }
+      const eqSnap = await getDocs(query(collection(db, 'equipamentos'), ...constraints))
+      const equipData = eqSnap.docs
+        .map((d) => {
+          const data = d.data() as any
+          return {
+            id: d.id,
+            ...data,
+            category: catMap[data.category_id] || null
+          }
+        })
+        .sort((a: any, b: any) => {
+          const aDate = a.created_at?.toMillis?.() ?? 0
+          const bDate = b.created_at?.toMillis?.() ?? 0
+          return bDate - aDate
+        })
+      setEquipments(equipData as Equipment[])
+    } catch (e) {
+      console.error('[EquipmentGrid] Erro ao carregar equipamentos:', e)
     }
     setLoading(false)
   }
@@ -269,6 +303,33 @@ export default function EquipmentGrid({ selectedCategory }: EquipmentGridProps) 
                   <p className="text-sm text-gray-600 line-clamp-2">
                     {equipment.description || 'Equipamento profissional de alta qualidade.'}
                   </p>
+                  {/* Botão Adicionar ao Carrinho de Cotação */}
+                  <div className="pt-2">
+                    <button
+                      onClick={(e) => handleAdicionarCarrinho(e, equipment)}
+                      className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                        adicionadoId === equipment.id
+                          ? 'bg-green-500 text-white'
+                          : 'bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200'
+                      }`}
+                    >
+                      {adicionadoId === equipment.id ? (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Adicionado!
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          Adicionar à Cotação
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             )
@@ -399,10 +460,45 @@ export default function EquipmentGrid({ selectedCategory }: EquipmentGridProps) 
                 <p className="text-lg text-gray-600 leading-relaxed">
                   {selectedEquipment.description || 'Equipamento profissional de alta qualidade.'}
                 </p>
+                {/* Botão Pedir Cotação no modal */}
+                <div className="pt-2">
+                  <button
+                    onClick={(e) => handleAdicionarCarrinho(e, selectedEquipment)}
+                    className={`flex items-center justify-center gap-2 w-full py-4 rounded-2xl text-base font-bold transition-all ${
+                      adicionadoId === selectedEquipment.id
+                        ? 'bg-green-500 text-white'
+                        : 'bg-primary-600 hover:bg-primary-700 text-white'
+                    }`}
+                  >
+                    {adicionadoId === selectedEquipment.id ? (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Adicionado à cotação!
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        Pedir Cotação
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de autenticação */}
+      {modalAuthAberto && (
+        <AuthModalCotacao
+          onClose={() => { setModalAuthAberto(false); setEquipmentParaAdicionar(null) }}
+          onAutenticado={handleAutenticado}
+        />
       )}
     </>
   )

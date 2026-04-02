@@ -3,7 +3,7 @@
 import { useEffect, useState, Dispatch, SetStateAction, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { auth } from '@/lib/firebase'
 import { getUser } from '@/lib/auth'
 import AdminHeader from '@/components/AdminHeader'
 
@@ -47,17 +47,12 @@ export default function UsersPage() {
 
   async function loadUsers() {
     setLoading(true)
-    
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      
+      const token = await auth.currentUser?.getIdToken()
       const response = await fetch('/api/admin/users', {
-        headers: {
-          'Authorization': `Bearer ${session?.access_token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await response.json()
-      
       if (response.ok && data.users) {
         const formattedUsers = data.users.map((u: any) => ({
           id: u.id,
@@ -71,11 +66,9 @@ export default function UsersPage() {
         setIsError(true)
       }
     } catch (error: any) {
-      console.error('Erro ao carregar usuários:', error)
       setMessage('Erro ao carregar usuários. Verifique as permissões.')
       setIsError(true)
     }
-    
     setLoading(false)
   }
 
@@ -116,36 +109,21 @@ export default function UsersPage() {
     setUpdatingPassword(true)
 
     try {
-      if (selectedUser.id === user?.id) {
-        const { error } = await supabase.auth.updateUser({ password: newPassword })
-
-        if (error) {
-          setPasswordMessage('Erro ao atualizar senha: ' + error.message)
-          setUpdatingPassword(false)
-          return
-        }
-      } else {
-        const { data: { session } } = await supabase.auth.getSession()
-
-        const response = await fetch('/api/admin/users', {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`
-          },
-          body: JSON.stringify({
-            id: selectedUser.id,
-            password: newPassword
-          })
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          setPasswordMessage('Erro ao atualizar senha: ' + (data.error || 'Erro desconhecido'))
-          setUpdatingPassword(false)
-          return
-        }
+      // Para todos os usuários, usa Admin SDK via API (sem restrição de sessão recente)
+      const token = await auth.currentUser?.getIdToken()
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ id: selectedUser.id, password: newPassword })
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        setPasswordMessage('Erro ao atualizar senha: ' + (data.error || 'Erro desconhecido'))
+        setUpdatingPassword(false)
+        return
       }
 
       setPasswordMessage('Senha atualizada com sucesso! ✅')
@@ -180,18 +158,14 @@ export default function UsersPage() {
     setIsError(false)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      
+      const token = await auth.currentUser?.getIdToken()
       const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          email: newUserEmail,
-          password: newUserPassword
-        })
+        body: JSON.stringify({ email: newUserEmail, password: newUserPassword })
       })
 
       const data = await response.json()
@@ -217,7 +191,7 @@ export default function UsersPage() {
 
   async function handleDeleteUser(userId: string, email: string) {
     // Não permitir deletar o próprio usuário
-    if (userId === user?.id) {
+    if (userId === user?.uid) {
       setMessage('Você não pode deletar seu próprio usuário!')
       setIsError(true)
       return
@@ -226,13 +200,10 @@ export default function UsersPage() {
     if (!confirm(`Tem certeza que deseja excluir o usuário ${email}?`)) return
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      
+      const token = await auth.currentUser?.getIdToken()
       const response = await fetch(`/api/admin/users?id=${userId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session?.access_token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       })
 
       const data = await response.json()
@@ -314,7 +285,7 @@ export default function UsersPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-gray-900">{adminUser.email}</span>
-                          {adminUser.id === user?.id && (
+                          {adminUser.id === user?.uid && (
                             <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
                               Você
                             </span>

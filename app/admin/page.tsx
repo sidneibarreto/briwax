@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
     if (error) {
       setError('Email ou senha incorretos')
       setLoading(false)
-    } else if (data.user) {
+    } else if (data?.user) {
       router.push('/admin/dashboard')
     }
   }

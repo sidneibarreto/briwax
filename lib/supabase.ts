@@ -1,6 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Este arquivo foi mantido para compatibilidade de imports existentes.
+// A inicialização real do Firebase está em lib/firebase.ts
+export { db, auth, storage } from './firebase'
+export { db as default } from './firebase'
