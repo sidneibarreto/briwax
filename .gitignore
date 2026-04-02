@@ -35,3 +35,6 @@ next-env.d.ts
 
 # Firebase Service Account
 firebase-service-account.json
+
+# Dados de migração (contém e-mails e IDs de usuários)
+migration/exports/
